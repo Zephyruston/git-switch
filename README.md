@@ -1,6 +1,6 @@
 # git-switch
 
-A simple, config-based Git account switcher for managing multiple Git accounts with SSH keys.
+If you work across multiple Git accounts (personal, work, client projects, etc.), you normally have to deal with SSH host aliases or prefixes on every git command to use the right identity. git-switch lets you switch between accounts with a single command, it handles your SSH config and git user settings so you can just use git normally.
 
 ## Features
 
@@ -19,8 +19,8 @@ cd git-switch
 # Run installer
 ./install.sh
 
-# Configure your accounts
-vim ~/.config/git-switch/accounts.conf
+# Add an account
+git-switch -a
 
 # Switch accounts
 git-switch
@@ -39,77 +39,66 @@ curl -sSL https://raw.githubusercontent.com/KaleLetendre/git-switch/main/install
 1. Clone this repository
 2. Copy `bin/git-switch` to somewhere in your PATH (e.g., `~/.local/bin/`)
 3. Make it executable: `chmod +x ~/.local/bin/git-switch`
-4. Create config directory: `mkdir -p ~/.config/git-switch`
-5. Copy example config: `cp examples/accounts.conf ~/.config/git-switch/`
-6. Edit config with your accounts: `vim ~/.config/git-switch/accounts.conf`
 
-## Configuration
+## Adding an Account
 
-Edit `~/.config/git-switch/accounts.conf`:
-
-```
-# Format: name|email|ssh_key|description|hosts
-Personal|john@example.com|~/.ssh/id_ed25519|Personal GitHub|github,bitbucket
-Work|john@company.com|~/.ssh/id_ed25519_work|Work Account|github,gitlab
-Client|john@client.com|~/.ssh/id_ed25519_client|Client Project|bitbucket
-```
-
-### Configuration Fields
-
-- **name**: Account identifier (no spaces)
-- **email**: Git commit email
-- **ssh_key**: Path to SSH private key
-- **description**: Human-readable description
-- **hosts**: Comma-separated: `github`, `bitbucket`, `gitlab`
-
-## Usage
-
-```bash
-# Run git-switch
-git-switch
-
-# Select account from menu
-# 1) Personal (Personal GitHub - john@example.com)
-# 2) Work (Work Account - john@company.com)
-# 3) Client (Client Project - john@client.com)
-# Enter choice (1-3): 2
-
-# Now use git normally
-git clone git@github.com:company/project.git
-```
-
-## Adding a New Account
+Before adding an account, you need an SSH key for it. If you already have one, skip to step 3.
 
 ### 1. Generate SSH Key
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_newaccount -C "your.email@company.com"
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_myaccount -C "your.email@example.com"
 ```
 
 ### 2. Add Public Key to Git Provider
 
 ```bash
-# Copy public key
-cat ~/.ssh/id_ed25519_newaccount.pub
+cat ~/.ssh/id_ed25519_myaccount.pub
 ```
 
-Add to:
-- **GitHub**: Settings → SSH and GPG keys → New SSH key
-- **Bitbucket**: Personal settings → SSH keys → Add key
-- **GitLab**: User Settings → SSH Keys
+Copy the output and add it to your provider:
+- **GitHub**: [SSH and GPG keys](https://github.com/settings/keys)
+- **Bitbucket**: [SSH keys](https://bitbucket.org/account/settings/ssh-keys/)
+- **GitLab**: [SSH Keys](https://gitlab.com/-/user_settings/ssh_keys)
 
-### 3. Add to Configuration
+### 3. Add to git-switch
 
 ```bash
-echo "NewAccount|your.email@company.com|~/.ssh/id_ed25519_newaccount|New Account Description|github,bitbucket" >> ~/.config/git-switch/accounts.conf
+git-switch -a
 ```
 
-### 4. Switch to New Account
+This will prompt you for the account name, email, SSH key path, description, and hosts.
+
+## Usage
 
 ```bash
 git-switch
-# Select your new account
 ```
+
+Select an account from the menu, then use git normally:
+
+```
+1) Personal (Personal GitHub - john@example.com)
+2) Work (Work Account - john@company.com)
+Enter choice (1-2): 1
+```
+
+## Configuration
+
+Accounts are stored in `~/.config/git-switch/accounts.conf`. You can also edit this file directly:
+
+```
+# Format: name|email|ssh_key|description|hosts
+Personal|john@example.com|~/.ssh/id_ed25519|Personal GitHub|github,bitbucket
+Work|john@company.com|~/.ssh/id_ed25519_work|Work Account|github,gitlab
+```
+
+Fields:
+- **name**: Account identifier (no spaces), shown in the menu
+- **email**: Git commit email
+- **ssh_key**: Path to SSH private key
+- **description**: Shown next to the name in the menu
+- **hosts**: Comma-separated: `github`, `bitbucket`, `gitlab`
 
 ## How It Works
 

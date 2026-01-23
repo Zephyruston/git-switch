@@ -62,12 +62,26 @@ if [ -f "bin/git-switch" ]; then
     print_info "Installing from local repository..."
     cp bin/git-switch "$INSTALL_DIR/git-switch"
     
-    # Copy example config if it doesn't exist
+    # Create config if it doesn't exist
     if [ ! -f "$CONFIG_DIR/accounts.conf" ]; then
-        if [ -f "examples/accounts.conf" ]; then
-            cp examples/accounts.conf "$CONFIG_DIR/accounts.conf"
-            print_success "Example configuration copied to $CONFIG_DIR/accounts.conf"
-        fi
+        cat > "$CONFIG_DIR/accounts.conf" << 'CONF'
+# Git Switch Accounts Configuration
+# Add accounts with: git-switch -a
+#
+# Format: name|email|ssh_key|description|hosts
+#
+# Fields:
+#   name: Account identifier (no spaces)
+#   email: Git commit email address
+#   ssh_key: Path to SSH private key
+#   description: Human-readable description
+#   hosts: Comma-separated list (github,bitbucket,gitlab)
+#
+# Example:
+#   Personal|john@example.com|~/.ssh/id_ed25519|Personal GitHub|github,bitbucket
+
+CONF
+        print_success "Configuration created at $CONFIG_DIR/accounts.conf"
     else
         print_info "Configuration already exists at $CONFIG_DIR/accounts.conf"
     fi
@@ -85,10 +99,26 @@ else
     # Copy files
     cp git-switch-temp/bin/git-switch "$INSTALL_DIR/git-switch"
     
-    # Copy example config if it doesn't exist
+    # Create config if it doesn't exist
     if [ ! -f "$CONFIG_DIR/accounts.conf" ]; then
-        cp git-switch-temp/examples/accounts.conf "$CONFIG_DIR/accounts.conf"
-        print_success "Example configuration copied to $CONFIG_DIR/accounts.conf"
+        cat > "$CONFIG_DIR/accounts.conf" << 'CONF'
+# Git Switch Accounts Configuration
+# Add accounts with: git-switch -a
+#
+# Format: name|email|ssh_key|description|hosts
+#
+# Fields:
+#   name: Account identifier (no spaces)
+#   email: Git commit email address
+#   ssh_key: Path to SSH private key
+#   description: Human-readable description
+#   hosts: Comma-separated list (github,bitbucket,gitlab)
+#
+# Example:
+#   Personal|john@example.com|~/.ssh/id_ed25519|Personal GitHub|github,bitbucket
+
+CONF
+        print_success "Configuration created at $CONFIG_DIR/accounts.conf"
     else
         print_info "Configuration already exists at $CONFIG_DIR/accounts.conf"
     fi
@@ -135,16 +165,7 @@ echo "       Installation complete!"
 echo "======================================"
 echo ""
 echo "Next steps:"
-echo "1. Edit your configuration: vim $CONFIG_DIR/accounts.conf"
-echo "2. Add your Git accounts following the format in the file"
-echo "3. Run 'git-switch' to switch between accounts"
+echo "1. Run 'git-switch -a' to add an account"
+echo "2. Run 'git-switch' to switch between accounts"
 echo ""
-echo "For more information, visit: https://github.com/KaleLetendre/git-switch"
-echo ""
-
-# Ask if user wants to edit config now
-read -p "Would you like to edit the configuration now? (y/n) " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    ${EDITOR:-vim} "$CONFIG_DIR/accounts.conf"
-fi
+echo "Run 'git-switch -h' for all available commands."

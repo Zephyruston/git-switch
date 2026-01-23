@@ -2,39 +2,354 @@
 
 # Git Account Switcher - Config-based version
 
-CONFIG_FILE="$HOME/.config/git-switch/accounts.conf"
+VERSION="1.0.0"
+REPO_URL="https://raw.githubusercontent.com/KaleLetendre/git-switch/main"
 
-# Check if config file exists
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Error: Config file not found at $CONFIG_FILE"
-    echo "Please create the config file first."
+CONFIG_DIR="$HOME/.config/git-switch"
+CONFIG_FILE="$CONFIG_DIR/accounts.conf"
+
+# Ensure config directory and file exist
+ensure_config() {
+    if [ ! -d "$CONFIG_DIR" ]; then
+        mkdir -p "$CONFIG_DIR"
+    fi
+    if [ ! -f "$CONFIG_FILE" ]; then
+        cat > "$CONFIG_FILE" << 'CONF'
+# Git Switch Accounts Configuration
+# Add accounts with: git-switch -a
+#
+# Format: name|email|ssh_key|description|hosts
+#
+# Fields:
+#   name: Account identifier (no spaces)
+#   email: Git commit email address
+#   ssh_key: Path to SSH private key
+#   description: Human-readable description
+#   hosts: Comma-separated list (github,bitbucket,gitlab)
+#
+# Example:
+#   Personal|john@example.com|~/.ssh/id_ed25519|Personal GitHub|github,bitbucket
+
+CONF
+    fi
+}
+
+# Add account interactively
+add_account() {
+    ensure_config
+
+    echo "Add Git Account"
+    echo "==============="
+    echo "You can also add accounts directly to: $CONFIG_FILE"
+    echo ""
+
+    echo "The name you will see in the git-switch menu (no spaces)."
+    read -e -p "Name: " name
+    if [ -z "$name" ] || [[ "$name" == *" "* ]]; then
+        echo "Error: Name is required and cannot contain spaces."
+        exit 1
+    fi
+
+    echo ""
+    echo "Email - used for git commits (git user.email)."
+    read -e -p "Email: " email
+    if [ -z "$email" ]; then
+        echo "Error: Email is required."
+        exit 1
+    fi
+
+    echo ""
+    echo "Path to the SSH private key for this account."
+    echo "See the README for how to generate one: https://github.com/KaleLetendre/git-switch#adding-a-new-account"
+    read -e -p "SSH key path [~/.ssh/id_ed25519]: " ssh_key
+    ssh_key="${ssh_key:-~/.ssh/id_ed25519}"
+
+    echo ""
+    echo "Short description - shown next to the name in the menu."
+    read -e -p "Description [$name]: " description
+    if [ -z "$description" ]; then
+        description="$name"
+    fi
+
+    echo ""
+    echo "Git hosts this account uses (comma-separated: github, bitbucket, gitlab)."
+    read -e -p "Hosts [github]: " hosts
+    hosts="${hosts:-github}"
+
+    echo ""
+    echo "Account to add:"
+    echo "  Name:        $name"
+    echo "  Email:       $email"
+    echo "  SSH key:     $ssh_key"
+    echo "  Description: $description"
+    echo "  Hosts:       $hosts"
+    echo ""
+    read -e -p "Confirm? [Y/n]: " confirm
+    if [[ "$confirm" =~ ^[Nn] ]]; then
+        echo "Cancelled."
+        exit 0
+    fi
+
+    local entry="$name|$email|$ssh_key|$description|$hosts"
+    echo "$entry" >> "$CONFIG_FILE"
+    echo ""
+    echo "Added to $CONFIG_FILE:"
+    echo "  $entry"
+}
+
+# Background version check (once per day, non-blocking)
+check_update_bg() {
+    local check_file="$CONFIG_DIR/.last_update_check"
+    local update_file="$CONFIG_DIR/.update_available"
+    local now=$(date +%s)
+
+    # Only check if last check was more than 24h ago
+    if [ -f "$check_file" ]; then
+        local last_check=$(cat "$check_file" 2>/dev/null)
+        if [ -n "$last_check" ] && [ $((now - last_check)) -lt 86400 ]; then
+            return
+        fi
+    fi
+
+    echo "$now" > "$check_file"
+    remote_version=$(curl -sSL --max-time 3 "$REPO_URL/bin/git-switch" 2>/dev/null | grep '^VERSION=' | head -1 | cut -d'"' -f2)
+    if [ -n "$remote_version" ] && [ "$VERSION" != "$remote_version" ]; then
+        echo "$remote_version" > "$update_file"
+    else
+        rm -f "$update_file"
+    fi
+}
+
+# Show update notice if cached
+show_update_notice() {
+    local update_file="$CONFIG_DIR/.update_available"
+    if [ -f "$update_file" ]; then
+        local remote_version=$(cat "$update_file" 2>/dev/null)
+        if [ -n "$remote_version" ]; then
+            echo "Update available: v$VERSION -> v$remote_version (run git-switch -u)"
+            echo ""
+        fi
+    fi
+}
+
+# Handle flags
+if [ "$1" = "-v" ]; then
+    echo "git-switch v$VERSION"
+    exit 0
+fi
+
+if [ "$1" = "-h" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    if [ -f "$SCRIPT_DIR/../COMMANDS" ]; then
+        cat "$SCRIPT_DIR/../COMMANDS"
+    else
+        cat << 'HELP'
+Usage: git-switch [option]
+
+Commands:
+  git-switch            Open interactive account selection menu
+  git-switch <number>   Switch directly to account at that position
+  git-switch -a         Add a new account interactively
+  git-switch -e <number>  Edit an existing account
+  git-switch -u           Update to the latest version
+  git-switch -v           Show current version
+  git-switch -h           Show this help message
+HELP
+    fi
+    exit 0
+fi
+
+if [ "$1" = "-a" ]; then
+    add_account
+    exit 0
+fi
+
+if [ "$1" = "-u" ]; then
+    INSTALL_PATH="$(realpath "$0")"
+
+    echo "Updating git-switch..."
+    tmp=$(mktemp)
+    if curl -sSL "$REPO_URL/bin/git-switch" -o "$tmp"; then
+        chmod +x "$tmp"
+        mv "$tmp" "$INSTALL_PATH"
+        rm -f "$CONFIG_DIR/.update_available" "$CONFIG_DIR/.last_update_check"
+        echo "Updated: $INSTALL_PATH"
+    else
+        rm -f "$tmp"
+        echo "Error: Failed to download update."
+        exit 1
+    fi
+    exit 0
+fi
+
+if [ "$1" = "-e" ]; then
+    ensure_config
+
+    if [ -z "$2" ] || ! [[ "$2" =~ ^[0-9]+$ ]]; then
+        echo "Usage: git-switch -e <number>"
+        echo "Run 'git-switch' to see account numbers."
+        exit 1
+    fi
+
+    # Read accounts
+    accounts=()
+    while IFS='|' read -r name email ssh_key description hosts || [ -n "$name" ]; do
+        [[ "$name" =~ ^#.*$ ]] && continue
+        [[ -z "$name" ]] && continue
+        accounts+=("$name|$email|$ssh_key|$description|$hosts")
+    done < "$CONFIG_FILE"
+
+    idx=$(($2 - 1))
+    if [ "$2" -lt 1 ] || [ "$2" -gt ${#accounts[@]} ]; then
+        echo "Invalid choice: $2"
+        echo "You have ${#accounts[@]} account(s) configured:"
+        for i in "${!accounts[@]}"; do
+            IFS='|' read -r name email ssh_key description hosts <<< "${accounts[$i]}"
+            echo "  $((i+1))) $name ($description - $email)"
+        done
+        exit 1
+    fi
+
+    # Parse current values
+    IFS='|' read -r cur_name cur_email cur_ssh_key cur_description cur_hosts <<< "${accounts[$idx]}"
+
+    echo "Edit Account #$2"
+    echo "==============="
+    echo ""
+    echo "Current entry:"
+    echo "  Name:        $cur_name"
+    echo "  Email:       $cur_email"
+    echo "  SSH key:     $cur_ssh_key"
+    echo "  Description: $cur_description"
+    echo "  Hosts:       $cur_hosts"
+    echo ""
+    echo "Edit each field below (pre-filled with current value):"
+    echo ""
+
+    echo "The name you will see in the git-switch menu (no spaces)."
+    read -e -i "$cur_name" -p "Name: " name
+    name="${name:-$cur_name}"
+    if [[ "$name" == *" "* ]]; then
+        echo "Error: Name cannot contain spaces."
+        exit 1
+    fi
+
+    echo ""
+    echo "Email - used for git commits (git user.email)."
+    read -e -i "$cur_email" -p "Email: " email
+    email="${email:-$cur_email}"
+
+    echo ""
+    echo "Path to the SSH private key for this account."
+    read -e -i "$cur_ssh_key" -p "SSH key path: " ssh_key
+    ssh_key="${ssh_key:-$cur_ssh_key}"
+
+    echo ""
+    echo "Short description - shown next to the name in the menu."
+    read -e -i "$cur_description" -p "Description: " description
+    description="${description:-$cur_description}"
+
+    echo ""
+    echo "Git hosts this account uses (comma-separated: github, bitbucket, gitlab)."
+    read -e -i "$cur_hosts" -p "Hosts: " hosts
+    hosts="${hosts:-$cur_hosts}"
+
+    echo ""
+    echo "Updated account:"
+    echo "  Name:        $name"
+    echo "  Email:       $email"
+    echo "  SSH key:     $ssh_key"
+    echo "  Description: $description"
+    echo "  Hosts:       $hosts"
+    echo ""
+    read -e -p "Confirm? [Y/n]: " confirm
+    if [[ "$confirm" =~ ^[Nn] ]]; then
+        echo "Cancelled."
+        exit 0
+    fi
+
+    # Rewrite config with updated entry
+    old_entry="${accounts[$idx]}"
+    new_entry="$name|$email|$ssh_key|$description|$hosts"
+
+    if [ "$old_entry" = "$new_entry" ]; then
+        echo ""
+        echo "No changes made."
+        exit 0
+    fi
+
+    accounts[$idx]="$new_entry"
+    # Preserve comment lines and rewrite
+    {
+        while IFS= read -r line || [ -n "$line" ]; do
+            if [[ "$line" =~ ^#  ]] || [[ -z "$line" ]]; then
+                echo "$line"
+            fi
+        done < "$CONFIG_FILE"
+        for entry in "${accounts[@]}"; do
+            echo "$entry"
+        done
+    } > "$CONFIG_FILE.tmp"
+    mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+
+    echo ""
+    echo "Updated $CONFIG_FILE:"
+    echo "  before: $old_entry"
+    echo "  after:  $new_entry"
+    exit 0
+fi
+
+# Reject unrecognized arguments
+if [ -n "$1" ] && ! [[ "$1" =~ ^[0-9]+$ ]]; then
+    echo "Unknown option: $1"
+    echo "Run 'git-switch -h' for available commands."
     exit 1
 fi
 
-echo "Git Account Switcher"
-echo "===================="
-echo ""
-echo "Choose account:"
+# Check if config file exists
+ensure_config
 
-# Read and display accounts from config
+# Check if there are any accounts configured
+if ! grep -q '^[^#]' "$CONFIG_FILE" 2>/dev/null; then
+    echo "No accounts configured. Run 'git-switch -a' to add one."
+    exit 1
+fi
+
+# Read accounts from config
 accounts=()
-counter=1
 while IFS='|' read -r name email ssh_key description hosts || [ -n "$name" ]; do
-    # Skip comments and empty lines
     [[ "$name" =~ ^#.*$ ]] && continue
     [[ -z "$name" ]] && continue
-    
     accounts+=("$name|$email|$ssh_key|$description|$hosts")
-    echo "$counter) $name ($description - $email)"
-    ((counter++))
 done < "$CONFIG_FILE"
 
-echo ""
-read -p "Enter choice (1-$((counter-1))): " choice
+if [[ "$1" =~ ^[0-9]+$ ]]; then
+    # Direct selection via argument
+    choice="$1"
+else
+    # Interactive menu
+    check_update_bg &>/dev/null &
+    echo "Git Account Switcher (run git-switch -h for help)"
+    echo "=================================================="
+    echo ""
+    show_update_notice
+    echo "Choose account:"
+    for i in "${!accounts[@]}"; do
+        IFS='|' read -r name email ssh_key description hosts <<< "${accounts[$i]}"
+        echo "$((i+1))) $name ($description - $email)"
+    done
+    echo ""
+    read -e -p "Enter choice (1-${#accounts[@]}): " choice
+fi
 
 # Validate choice
-if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt $((counter-1)) ]; then
-    echo "Invalid choice"
+if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt ${#accounts[@]} ]; then
+    echo "Invalid choice: $choice"
+    echo "You have ${#accounts[@]} account(s) configured:"
+    for i in "${!accounts[@]}"; do
+        IFS='|' read -r name email ssh_key description hosts <<< "${accounts[$i]}"
+        echo "  $((i+1))) $name ($description - $email)"
+    done
     exit 1
 fi
 

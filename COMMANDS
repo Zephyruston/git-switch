@@ -1,0 +1,10 @@
+Usage: git-switch [option]
+
+Commands:
+  git-switch              Open interactive account selection menu
+  git-switch <number>     Switch directly to account at that position
+  git-switch -a           Add a new account interactively
+  git-switch -e <number>  Edit an existing account
+  git-switch -u           Update to the latest version
+  git-switch -v           Show current version
+  git-switch -h           Show this help message
