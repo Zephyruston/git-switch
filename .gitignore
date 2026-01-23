@@ -11,6 +11,6 @@ Thumbs.db
 # Test configurations
 test-accounts.conf
 test/
-
+exclude/
 # Personal configurations (don't commit real accounts)
 accounts.conf.personal
