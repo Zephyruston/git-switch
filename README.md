@@ -4,12 +4,10 @@ A simple, config-based Git account switcher for managing multiple Git accounts w
 
 ## Features
 
-- 🔄 **Config-based**: Add new accounts by editing a simple config file
-- 🔑 **SSH key management**: Automatically configures SSH for each account
-- 🌐 **Multi-provider**: Supports GitHub, Bitbucket, GitLab
-- ⚡ **Instant switching**: Works immediately in current terminal
-- 🛡️ **Secure**: Uses SSH config with `IdentitiesOnly` for security
-- 📝 **Simple format**: Easy pipe-separated configuration
+- Config-based account management via a simple pipe-separated file
+- Automatic SSH config generation with `IdentitiesOnly` enforcement
+- Supports GitHub, Bitbucket, and GitLab
+- Works immediately in the current terminal (no shell restart)
 
 ## Quick Start
 
@@ -133,16 +131,6 @@ git-switch
 - SSH client
 - Linux/macOS (WSL on Windows)
 
-## Comparison with Alternatives
-
-| Feature | git-switch | GitHub CLI | SSH Config Manual | git-acc |
-|---------|------------|------------|-------------------|---------|
-| Config-based | ✅ | ❌ | ❌ | ❌ |
-| Multi-provider | ✅ | GitHub only | ✅ | ✅ |
-| Auto-detection | ✅ | ❌ | ❌ | ❌ |
-| No shell reload | ✅ | ✅ | ✅ | ❌ |
-| Simple setup | ✅ | ✅ | ❌ | ⚠️ |
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -156,11 +144,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- Inspired by the need to manage multiple Git accounts efficiently
-- Thanks to all contributors and users
 
 ## Support
 
