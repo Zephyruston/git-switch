@@ -125,9 +125,11 @@ show_update_notice() {
     local update_file="$CONFIG_DIR/.update_available"
     if [ -f "$update_file" ]; then
         local remote_version=$(cat "$update_file" 2>/dev/null)
-        if [ -n "$remote_version" ]; then
-            echo "Update available: v$VERSION -> v$remote_version (run git-switch -u)"
+        if [ -n "$remote_version" ] && [ "$remote_version" != "$VERSION" ]; then
+            echo -e "\033[33mUpdate available: v$VERSION -> v$remote_version (run git-switch -u)\033[0m"
             echo ""
+        else
+            rm -f "$update_file"
         fi
     fi
 }
