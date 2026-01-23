@@ -74,52 +74,6 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
    git push origin feature/your-feature-name
    ```
 
-## Styleguides
-
-### Git Commit Messages
-
-* Use the present tense ("Add feature" not "Added feature")
-* Use the imperative mood ("Move cursor to..." not "Moves cursor to...")
-* Limit the first line to 72 characters or less
-* Reference issues and pull requests liberally after the first line
-
-### Bash Script Styleguide
-
-* Use 4 spaces for indentation (no tabs)
-* Use `snake_case` for variable names
-* Use UPPERCASE for constants
-* Always quote variables: `"$var"` not `$var`
-* Use `[[ ]]` for conditionals instead of `[ ]`
-* Add comments for complex logic
-* Use meaningful variable names
-
-### Documentation Styleguide
-
-* Use Markdown for all documentation
-* Reference functions and variables in backticks: `git-switch`
-* Include code examples in triple backticks with language specification
-
-## Testing
-
-Before submitting a PR, please test:
-
-1. **Basic functionality**: Does account switching work?
-2. **Config parsing**: Does it handle various config formats?
-3. **Error handling**: Does it fail gracefully with bad input?
-4. **SSH config generation**: Is the generated SSH config valid?
-5. **Multiple hosts**: Test with github, bitbucket, gitlab
-
-## Additional Notes
-
-### Issue and Pull Request Labels
-
-* `bug` - Something isn't working
-* `enhancement` - New feature or request
-* `good first issue` - Good for newcomers
-* `help wanted` - Extra attention is needed
-* `question` - Further information is requested
-* `documentation` - Improvements or additions to documentation
-
 ## Recognition
 
 Contributors will be recognized in the README.md file. Thank you for your contributions!
