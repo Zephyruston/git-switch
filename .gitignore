@@ -1,0 +1,16 @@
+# Backup files
+*.bak
+*~
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test configurations
+test-accounts.conf
+test/
+
+# Personal configurations (don't commit real accounts)
+accounts.conf.personal
