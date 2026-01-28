@@ -407,9 +407,7 @@ EOF
 done
 
 # Set git config
-# Extract username from email (everything before @) if name not provided
-username="${email%%@*}"
-git config --global user.name "${username}"
+git config --global user.name "$name"
 git config --global user.email "$email"
 
 echo ""
